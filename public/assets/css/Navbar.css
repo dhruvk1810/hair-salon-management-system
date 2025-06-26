@@ -1,0 +1,66 @@
+/* ✅ Sticky Navbar */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Base styles */
+.menu {
+    display: flex;
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+/* 👇 MOBILE: Hide menu and show toggle */
+@media (max-width: 992px) {
+    .toggle {
+        display: block;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .menu {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        background: #fff;
+        margin-top: 10px;
+        padding: 10px 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ✅ When #drop is checked, show menu */
+    #drop:checked + .menu {
+        display: flex;
+    }
+
+    #drop {
+        display: none;
+    }
+
+    .menu li {
+        padding: 10px 15px;
+        border-bottom: 1px solid #000000;
+    }
+}
+
+/* DESKTOP: Always show menu as row */
+@media (min-width: 992px) {
+    .toggle {
+        display: none;
+    }
+
+    .menu {
+        display: flex !important;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .menu li {
+        border: none;
+    }
+}
