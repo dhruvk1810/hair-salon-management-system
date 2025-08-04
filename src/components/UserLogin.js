@@ -2,19 +2,19 @@ import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { auth, googleProvider } from '../firebase';
+import { signInWithPopup } from 'firebase/auth';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
-class SalonLogin extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            email: '',
-            password: '',
-            error: '',
-            loading: false,
-            showSuccessPopup: false,
-            showPassword: false
-        };
-    }
+class UserLogin extends Component {
+    state = {
+        email: '',
+        password: '',
+        error: '',
+        loading: false,
+        showSuccessPopup: false,
+        showPassword: false
+    };
 
     handleChange = (e) => {
         this.setState({ [e.target.name]: e.target.value, error: '' });
@@ -25,14 +25,13 @@ class SalonLogin extends Component {
         const { email, password } = this.state;
 
         if (!email || !password) {
-            this.setState({ error: 'Please enter email and password.' });
-            return;
+            return this.setState({ error: 'Please enter email and password.' });
         }
 
         this.setState({ loading: true, error: '' });
 
         try {
-            const response = await fetch('http://localhost:5000/api/salons/login', {
+            const response = await fetch('http://localhost:5000/api/users/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -45,20 +44,32 @@ class SalonLogin extends Component {
 
                 setTimeout(() => {
                     this.setState({ showSuccessPopup: false });
-                    localStorage.setItem('salonEmail', email);
-                    localStorage.setItem('salonLoggedIn', 'true');
-                    window.location.href = '/salonhome';
+                    localStorage.setItem('userEmail', email);
+                    localStorage.setItem('userLoggedIn', 'true');
+                    window.location.href = '/';
                 }, 1500);
             } else {
-                this.setState({ error: data.error, loading: false });
+                this.setState({ error: data.error || data.message || 'Login failed', loading: false });
             }
         } catch (err) {
-            this.setState({ error: 'Server error', loading: false });
+            this.setState({ error: 'Server error. Please try again later.', loading: false });
+        }
+    };
+
+    handleSocialLogin = async (provider) => {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            localStorage.setItem('userEmail', user.email);
+            localStorage.setItem('userLoggedIn', 'true');
+            window.location.href = '/';
+        } catch (error) {
+            this.setState({ error: error.message });
         }
     };
 
     render() {
-        const { loading, showSuccessPopup, showPassword } = this.state;
+        const { email, password, showPassword, loading, showSuccessPopup, error } = this.state;
 
         return (
             <div>
@@ -67,7 +78,7 @@ class SalonLogin extends Component {
                 <div className="breadcrumb-agile">
                     <ol className="breadcrumb mb-0">
                         <li className="breadcrumb-item"><Link to="/">Home</Link></li>
-                        <li className="breadcrumb-item active">Salon Login</li>
+                        <li className="breadcrumb-item active">User Login</li>
                     </ol>
                 </div>
 
@@ -75,7 +86,7 @@ class SalonLogin extends Component {
                     <div className="row justify-content-center">
                         <div className="col-md-6">
                             <div className="card shadow p-4 position-relative">
-                                <h3 className="text-center mb-4">Salon Login</h3>
+                                <h3 className="text-center mb-4">User Login</h3>
 
                                 {loading && (
                                     <div className="text-center mb-3">
@@ -85,9 +96,7 @@ class SalonLogin extends Component {
                                     </div>
                                 )}
 
-                                {this.state.error && (
-                                    <div className="alert alert-danger">{this.state.error}</div>
-                                )}
+                                {error && <div className="alert alert-danger">{error}</div>}
 
                                 <form onSubmit={this.handleSubmit}>
                                     <div className="form-group mb-3">
@@ -96,7 +105,7 @@ class SalonLogin extends Component {
                                             type="email"
                                             name="email"
                                             className="form-control"
-                                            value={this.state.email}
+                                            value={email}
                                             onChange={this.handleChange}
                                             placeholder="Enter email"
                                         />
@@ -108,7 +117,7 @@ class SalonLogin extends Component {
                                             type={showPassword ? 'text' : 'password'}
                                             name="password"
                                             className="form-control"
-                                            value={this.state.password}
+                                            value={password}
                                             onChange={this.handleChange}
                                             placeholder="Enter password"
                                         />
@@ -127,19 +136,43 @@ class SalonLogin extends Component {
                                     </div>
 
                                     <div className="mb-3 text-end">
-                                        <Link to="/salonforgotpassword" className="text-decoration-none">
+                                        <Link to="/userforgotpassword" className="text-decoration-none">
                                             Forgot Password?
                                         </Link>
                                     </div>
 
-                                    <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                                        {loading ? 'Logging in...' : 'Login'}
-                                    </button>
+                                    <div className="d-grid mb-3">
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary"
+                                            style={{ height: '45px' }}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Logging in...' : 'Login'}
+                                        </button>
+                                    </div>
                                 </form>
 
-                                <p className="text-center mt-3">
-                                    Don’t have an account? <Link to="/salonregister">Register here</Link>
+                                <p className="text-center mt-3 mb-3">
+                                    Don’t have an account? <Link to="/useraccount">Register here</Link>
                                 </p>
+
+                                <div className="d-flex align-items-center my-3">
+                                    <hr className="flex-grow-1" />
+                                    <span className="mx-2 text-muted">OR</span>
+                                    <hr className="flex-grow-1" />
+                                </div>
+
+                                <div className="d-flex flex-column gap-2">
+                                    <button
+                                        className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2"
+                                        style={{ height: '45px' }}
+                                        onClick={() => this.handleSocialLogin(googleProvider)}
+                                    >
+                                        <i className="bi bi-google"></i> Continue with Google
+                                    </button>
+
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -158,7 +191,6 @@ class SalonLogin extends Component {
     }
 }
 
-// ✅ Popup Styles
 const styles = {
     overlay: {
         position: 'fixed',
@@ -181,4 +213,4 @@ const styles = {
     }
 };
 
-export default SalonLogin;
+export default UserLogin;

@@ -1,38 +1,64 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, Navigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
-class SalonLogin extends Component {
+// HOC to use hooks in class component
+function withLocation(Component) {
+    return function WrappedComponent(props) {
+        const location = useLocation();
+        return <Component {...props} location={location} />;
+    };
+}
+
+class UserResetPassword extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            email: '',
             password: '',
-            error: '',
+            confirmPassword: '',
+            showPassword: false,
             loading: false,
-            showSuccessPopup: false,
-            showPassword: false
+            message: '',
+            error: '',
+            success: false,
+            showSuccessPopup: false
         };
     }
 
+    getEmailFromQuery = () => {
+        const params = new URLSearchParams(this.props.location.search);
+        return params.get('email');
+    };
+
     handleChange = (e) => {
-        this.setState({ [e.target.name]: e.target.value, error: '' });
+        this.setState({ [e.target.name]: e.target.value, error: '', message: '' });
     };
 
     handleSubmit = async (e) => {
         e.preventDefault();
-        const { email, password } = this.state;
+        const { password, confirmPassword } = this.state;
+        const email = this.getEmailFromQuery();
 
-        if (!email || !password) {
-            this.setState({ error: 'Please enter email and password.' });
+        if (!email) {
+            this.setState({ error: 'Email not found in URL. Go back and verify OTP again.' });
             return;
         }
 
-        this.setState({ loading: true, error: '' });
+        if (!password || !confirmPassword) {
+            this.setState({ error: 'Please enter all fields.' });
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.setState({ error: 'Passwords do not match.' });
+            return;
+        }
+
+        this.setState({ loading: true });
 
         try {
-            const response = await fetch('http://localhost:5000/api/salons/login', {
+            const response = await fetch(`http://localhost:5000/api/users/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -44,21 +70,33 @@ class SalonLogin extends Component {
                 this.setState({ showSuccessPopup: true });
 
                 setTimeout(() => {
-                    this.setState({ showSuccessPopup: false });
-                    localStorage.setItem('salonEmail', email);
-                    localStorage.setItem('salonLoggedIn', 'true');
-                    window.location.href = '/salonhome';
+                    this.setState({ success: true });
                 }, 1500);
             } else {
-                this.setState({ error: data.error, loading: false });
+                this.setState({ error: data.error || 'Reset failed.' });
             }
         } catch (err) {
-            this.setState({ error: 'Server error', loading: false });
+            this.setState({ error: 'Server error. Try again later.' });
+        } finally {
+            this.setState({ loading: false });
         }
     };
 
     render() {
-        const { loading, showSuccessPopup, showPassword } = this.state;
+        const {
+            password,
+            confirmPassword,
+            showPassword,
+            error,
+            message,
+            loading,
+            success,
+            showSuccessPopup
+        } = this.state;
+
+        if (success) {
+            return <Navigate to="/userlogin" />;
+        }
 
         return (
             <div>
@@ -67,57 +105,36 @@ class SalonLogin extends Component {
                 <div className="breadcrumb-agile">
                     <ol className="breadcrumb mb-0">
                         <li className="breadcrumb-item"><Link to="/">Home</Link></li>
-                        <li className="breadcrumb-item active">Salon Login</li>
+                        <li className="breadcrumb-item active">User Reset Password</li>
                     </ol>
                 </div>
 
                 <div className="container mt-5 mb-5">
                     <div className="row justify-content-center">
                         <div className="col-md-6">
-                            <div className="card shadow p-4 position-relative">
-                                <h3 className="text-center mb-4">Salon Login</h3>
+                            <div className="card shadow p-4">
+                                <h3 className="text-center mb-4">Reset Your Password</h3>
 
-                                {loading && (
-                                    <div className="text-center mb-3">
-                                        <div className="spinner-border text-primary" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {this.state.error && (
-                                    <div className="alert alert-danger">{this.state.error}</div>
-                                )}
+                                {error && <div className="alert alert-danger">{error}</div>}
+                                {message && <div className="alert alert-success">{message}</div>}
 
                                 <form onSubmit={this.handleSubmit}>
-                                    <div className="form-group mb-3">
-                                        <label>Email:</label>
-                                        <input
-                                            type="email"
-                                            name="email"
-                                            className="form-control"
-                                            value={this.state.email}
-                                            onChange={this.handleChange}
-                                            placeholder="Enter email"
-                                        />
-                                    </div>
-
-                                    <div className="form-group mb-2 position-relative">
-                                        <label>Password:</label>
+                                    <div className="form-group mb-3 position-relative">
+                                        <label>New Password:</label>
                                         <input
                                             type={showPassword ? 'text' : 'password'}
                                             name="password"
                                             className="form-control"
-                                            value={this.state.password}
+                                            value={password}
                                             onChange={this.handleChange}
-                                            placeholder="Enter password"
+                                            placeholder="Enter new password"
                                         />
                                         <span
                                             onClick={() => this.setState({ showPassword: !showPassword })}
                                             style={{
                                                 position: 'absolute',
-                                                right: '15px',
                                                 top: '48px',
+                                                right: '15px',
                                                 cursor: 'pointer',
                                                 color: '#999'
                                             }}
@@ -126,19 +143,25 @@ class SalonLogin extends Component {
                                         </span>
                                     </div>
 
-                                    <div className="mb-3 text-end">
-                                        <Link to="/salonforgotpassword" className="text-decoration-none">
-                                            Forgot Password?
-                                        </Link>
+                                    <div className="form-group mb-3">
+                                        <label>Confirm Password:</label>
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            name="confirmPassword"
+                                            className="form-control"
+                                            value={confirmPassword}
+                                            onChange={this.handleChange}
+                                            placeholder="Confirm new password"
+                                        />
                                     </div>
 
                                     <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                                        {loading ? 'Logging in...' : 'Login'}
+                                        {loading ? 'Resetting...' : 'Reset Password'}
                                     </button>
                                 </form>
 
                                 <p className="text-center mt-3">
-                                    Don’t have an account? <Link to="/salonregister">Register here</Link>
+                                    <Link to="/userlogin">Back to Login</Link>
                                 </p>
                             </div>
                         </div>
@@ -149,7 +172,7 @@ class SalonLogin extends Component {
                     <div style={styles.overlay}>
                         <div style={styles.popup}>
                             <div className="spinner-border text-success mb-3" role="status" />
-                            <h5 className="text-success">Login successful</h5>
+                            <h5 className="text-success">Password reset successful</h5>
                         </div>
                     </div>
                 )}
@@ -158,7 +181,7 @@ class SalonLogin extends Component {
     }
 }
 
-// ✅ Popup Styles
+// Popup Styles
 const styles = {
     overlay: {
         position: 'fixed',
@@ -181,4 +204,4 @@ const styles = {
     }
 };
 
-export default SalonLogin;
+export default withLocation(UserResetPassword);

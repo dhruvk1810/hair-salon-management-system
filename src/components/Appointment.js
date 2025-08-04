@@ -22,6 +22,15 @@ class Appointment extends Component {
     }
 
     componentDidMount() {
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+            localStorage.setItem('redirectAfterLogin', '/appointment');
+            window.location.href = '/userlogin';
+            return;
+        }
+
+        this.setState({ email: userEmail });
+
         fetch('http://localhost:5000/api/salons/names')
             .then(res => res.json())
             .then(data => {
@@ -122,7 +131,7 @@ class Appointment extends Component {
             .then(data => {
                 if (data.success) {
                     this.setState({
-                        name: '', email: '', phone: '', date: '', time: '', salon: '', service: '',
+                        name: '', phone: '', date: '', time: '', salon: '', service: '',
                         message: 'Appointment booked successfully!',
                         error: '', loading: false, showSuccessPopup: true, availableSlots: []
                     });
@@ -163,7 +172,7 @@ class Appointment extends Component {
 
                 <div className="container mt-5 mb-5">
                     <div className="row justify-content-center">
-                        <div className="col-md-8">
+                        <div className="col-md-6">
                             <div className="card shadow p-4">
                                 <h3 className="text-center mb-4">Book an Appointment</h3>
 
@@ -183,7 +192,7 @@ class Appointment extends Component {
                                     </div>
                                     <div className="form-group mb-3">
                                         <label>Email:</label>
-                                        <input type="email" name="email" className="form-control" placeholder='Enter your email' value={email} onChange={this.handleChange} />
+                                        <input type="email" name="email" className="form-control" placeholder='Enter your email' value={email} readOnly />
                                     </div>
                                     <div className="form-group mb-3">
                                         <label>Phone:</label>
