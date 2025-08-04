@@ -65,6 +65,19 @@ class SalonStatus extends Component {
                 this.setState({ error: 'Failed to fetch status.', loading: false });
             });
     }
+    
+    formatDate(dateStr) {
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+    }
+    
+    formatTime(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
+    }
 
     render() {
         const { appointments, loading, error, salonName, status } = this.state;
@@ -127,8 +140,8 @@ class SalonStatus extends Component {
                                         <td>{appt.name}</td>
                                         <td>{appt.email}</td>
                                         <td>{appt.phone}</td>
-                                        <td>{appt.date}</td>
-                                        <td>{appt.time}</td>
+                                       <td>{this.formatDate(appt.date)}</td>
+                                       <td>{this.formatTime(appt.time)}</td>
                                         <td>{appt.service}</td>
                                     </tr>
                                 ))}

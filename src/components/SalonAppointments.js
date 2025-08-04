@@ -167,39 +167,47 @@ class SalonAppointments extends Component {
 
     return (
       <div className="container my-5">
-        <div className="row mb-4 text-center">
-          <div className="col-md-2">
-            <div className="card p-2 shadow-sm">
-              <h6>Total</h6>
-              <strong>{this.state.totalAppointments}</strong>
-            </div>
-          </div>
-          <div className="col-md-2">
-            <div className="card p-2 shadow-sm">
-              <h6>Today</h6>
-              <strong>{this.state.todayCount}</strong>
-            </div>
-          </div>
-          <div className="col-md-2">
-            <div className="card p-2 shadow-sm text-danger">
-              <h6>Cancelled</h6>
-              <strong>{this.state.cancelledCount}</strong>
-            </div>
-          </div>
-          <div className="col-md-2">
-            <div className="card p-2 shadow-sm text-warning">
-              <h6>Pending</h6>
-              <strong>{this.state.pendingCount}</strong>
-            </div>
-          </div>
-          <div className="col-md-2">
-            <div className="card p-2 shadow-sm text-success">
-              <h6>Completed</h6>
-              <strong>{this.state.completedCount}</strong>
-            </div>
-          </div>
-        </div>
+        <div className="row justify-content-center gy-4 text-center my-lg-5 mb-5">
+    {/* Total */}
+    <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+      <div className="bg-primary text-white rounded-4 p-4 shadow-lg d-flex flex-column justify-content-center align-items-center h-100">
+        <h5 className="fw-bold mb-2">Total</h5>
+        <h2 className="fw-bold">{this.state.totalAppointments}</h2>
+      </div>
+    </div>
 
+    {/* Today */}
+    <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+      <div className="bg-purple text-black rounded-4 p-4 shadow-lg d-flex flex-column justify-content-center align-items-center h-100">
+        <h5 className="fw-bold mb-2">Today</h5>
+        <h2 className="fw-bold">{this.state.todayCount}</h2>
+      </div>
+    </div>
+
+    {/* Cancelled */}
+    <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+      <div className="bg-danger text-white rounded-4 p-4 shadow-lg d-flex flex-column justify-content-center align-items-center h-100">
+        <h5 className="fw-bold mb-2">Cancelled</h5>
+        <h2 className="fw-bold">{this.state.cancelledCount}</h2>
+      </div>
+    </div>
+
+    {/* Pending */}
+    <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+      <div className="bg-warning text-dark rounded-4 p-4 shadow-lg d-flex flex-column justify-content-center align-items-center h-100">
+        <h5 className="fw-bold mb-2">Pending</h5>
+        <h2 className="fw-bold">{this.state.pendingCount}</h2>
+      </div>
+    </div>
+
+    {/* Completed */}
+    <div className="col-12 col-sm-6 col-md-4 col-lg-2">
+      <div className="bg-success text-white rounded-4 p-4 shadow-lg d-flex flex-column justify-content-center align-items-center h-100">
+        <h5 className="fw-bold mb-2">Completed</h5>
+        <h2 className="fw-bold">{this.state.completedCount}</h2>
+      </div>
+    </div>
+  </div>
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>📋 Salon Appointments for Today</h2>
           <button className={`btn ${salonClosed ? 'btn-success' : 'btn-danger'}`} onClick={this.toggleSalonStatus}>

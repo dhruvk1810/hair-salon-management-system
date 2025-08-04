@@ -2,9 +2,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const nodemailer = require('nodemailer');
 
 const app = express();
@@ -14,19 +11,7 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = 'uploads/';
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `user-${req.params.userId}-${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
-const upload = multer({ storage });
-
+    
 // ======================
 // MongoDB Connection
 // ======================
@@ -104,6 +89,9 @@ const transporter = nodemailer.createTransport({
         pass: 'ccak ltdj bqvz cgvk'
     }
 });
+// ======================
+// API routes
+// ======================
 
 // ======================
 // User Routes
@@ -236,37 +224,60 @@ app.get('/api/user/appointments', async (req, res) => {
 app.delete('/api/appointments/:id', async (req, res) => {
   try {
     const deleted = await Appointment.findByIdAndDelete(req.params.id);
+
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Appointment not found' });
     }
 
-    // Send cancellation email
-     transporter.sendMail({
+    const mailOptions = {
       from: 'dhruvkanpariya706@gmail.com',
       to: deleted.email,
-      subject: 'Appointment Cancelled',
-      text: `Dear ${deleted.name},
+      subject: `📅 Appointment Cancelled - ${deleted.salon}`,
+      text: `Hi ${deleted.name},
 
-             This is to confirm that your appointment at ${deleted.salon} has been successfully cancelled.
-             
-             📅 Date: ${deleted.date}
-             ⏰ Time: ${deleted.time}
-             💇‍♂️ Service: ${deleted.service}
-             
-             We’re sorry to see you cancel, but we hope to see you again soon. You’re always welcome to rebook at your convenience.
-             
-             Thank you for using our service.
-             
-             Warm regards,  
-             ${deleted.salon} Team.`
+We regret to inform you that your appointment has been cancelled.
 
-     });
+Salon: ${deleted.salon}
+Date: ${formatDate(deleted.date)}
+Time: ${formatTime(deleted.time)}
+Service: ${deleted.service}
 
-    res.json({ success: true, message: 'Appointment cancelled and email sent' });
+We're sorry to see you cancel. You're always welcome to rebook at your convenience.
+
+Thank you for choosing us.
+
+Warm regards,  
+${deleted.salon} Team`
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error sending email:', error);
+        return res.json({ success: true, message: 'Appointment cancelled, but failed to send email.' });
+      } else {
+        console.log('Email sent:', info.response);
+        return res.json({ success: true, message: 'Appointment cancelled and email sent.' });
+      }
+    });
   } catch (err) {
+    console.error('Error deleting appointment:', err);
     res.status(500).json({ success: false, error: 'Delete failed' });
   }
 });
+
+function formatDate(dateStr) {
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function formatTime(timeStr) {
+  const [hour, minute] = timeStr.split(':');
+  const h = parseInt(hour, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const formattedHour = h % 12 || 12;
+  return `${formattedHour}:${minute} ${ampm}`;
+}
+
 
 // 📅 Update Appointment Status
 app.put('/api/appointments/status/:id', async (req, res) => {
@@ -292,9 +303,9 @@ app.put('/api/appointments/status/:id', async (req, res) => {
         text: `Dear ${updated.name},
 
                We regret to inform you that your appointment at ${updated.salon} has been cancelled by the salon due to unforeseen circumstances.
-               
-               📅 Date: ${updated.date}
-               ⏰ Time: ${updated.time}
+
+               📅 Date: ${formatDate(updated.date)}
+               ⏰ Time: ${formatTime(updated.time)}
                💇‍♂️ Service: ${updated.service}
                
                We apologize for the inconvenience. You may rebook at another time, or contact the salon directly for assistance.
@@ -410,49 +421,58 @@ app.post('/api/salons/reset-password', async (req, res) => {
 
 // 📅 Book Appointment
 app.post('/api/appointments', async (req, res) => {
-    const appointment = new Appointment(req.body);
-    await appointment.save();
-
-    // Send email confirmation
-    transporter.sendMail({
-        from: 'your-email@gmail.com',
-        to: appointment.email,
-        subject: 'Appointment Booked Successfully',
-        text: `Dear ${appointment.name},
-
-               We are pleased to confirm your appointment at ${appointment.salon}.
-               
-               📅 Date: ${appointment.date}
-               ⏰ Time: ${appointment.time}
-               💇‍♂️ Service: ${appointment.service}
-               
-               Your booking has been successfully confirmed. If you have any questions or need to make changes, feel free to contact the salon.
-               
-               Thank you for choosing us!
-               
-               Best regards,  
-               ${appointment.salon} Team.`
-    });
-
-    res.status(201).json(appointment);
-               
     const { name, email, phone, date, time, salon, service } = req.body;
-    try {
-        const foundSalon = await Salon.findOne({ salonName: salon });
-        if (!foundSalon) return res.status(404).json({ success: false, error: 'Salon not found' });
-        if (!foundSalon.isOpen) return res.status(400).json({ success: false, error: 'This salon is currently closed.' });
 
+    try {
+        // Validate request
+        if (!name || !email || !phone || !date || !time || !salon || !service) {
+            return res.status(400).json({ success: false, error: 'All fields are required.' });
+        }
+
+        // Check if salon exists and is open
+        const foundSalon = await Salon.findOne({ salonName: salon });
+        if (!foundSalon) {
+            return res.status(404).json({ success: false, error: 'Salon not found' });
+        }
+        if (!foundSalon.isOpen) {
+            return res.status(400).json({ success: false, error: 'This salon is currently closed.' });
+        }
+
+        // Check for duplicate slot
         const exists = await Appointment.findOne({ salon, date, time });
         if (exists) {
             return res.status(400).json({ success: false, error: 'This time slot is already booked.' });
         }
 
+        // Save new appointment
         const appointment = new Appointment({ name, email, phone, date, time, salon, service });
         await appointment.save();
 
-        res.status(201).json({ success: true, message: 'Appointment booked successfully' });
+        // Send confirmation email
+        await transporter.sendMail({
+            from: 'dhruvkanpariya706@gmail.com',
+            to: email,
+            subject: 'Appointment Booked Successfully',
+            text: `Dear ${name},
+
+                   We are pleased to confirm your appointment at ${salon}.
+
+                   📅 Date: ${formatDate(date)}
+                   ⏰ Time: ${formatTime(time)}
+                   💇‍♂️ Service: ${service}
+                   
+                   Your booking has been successfully confirmed. If you have any questions or need to make changes, feel free to contact the salon.
+                   
+                   Thank you for choosing us!
+                   
+                   Best regards,  
+                   ${salon} Team.`
+       });
+
+        res.status(201).json({ success: true, message: 'Appointment booked successfully', appointment });
+
     } catch (err) {
-        console.error(err);
+        console.error('📅 Booking error:', err);
         res.status(500).json({ success: false, error: 'Server error. Booking failed.' });
     }
 });

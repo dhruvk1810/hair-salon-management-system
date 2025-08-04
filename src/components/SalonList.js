@@ -19,17 +19,17 @@ class SalonList extends Component {
     }
 
     loadSalons = () => {
-        fetch('http://localhost:5000/api/salons/all')
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    this.setState({ salons: data }, this.fetchStatuses);
-                } else {
-                    alert("Invalid response from server");
-                }
-            })
-            .catch(() => alert("Failed to load salons"));
-    };
+    fetch('http://localhost:5000/api/salons/all')
+        .then(res => res.json())
+        .then(data => {
+            if (Array.isArray(data)) {
+                this.setState({ salons: data }); // Removed automatic fetchStatuses
+            } else {
+                alert("Invalid response from server");
+            }
+        })
+        .catch(() => alert("Failed to load salons"));
+   };
 
     fetchStatuses = async () => {
         this.setState({ loadingStatuses: true, showRefreshModal: true });
