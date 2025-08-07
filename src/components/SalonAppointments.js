@@ -14,7 +14,8 @@ class SalonAppointments extends Component {
       todayCount: 0,
       cancelledCount: 0,
       pendingCount: 0,
-      completedCount: 0
+      completedCount: 0,
+      showAllAppointments: false,
     };
   }
 
@@ -43,16 +44,18 @@ class SalonAppointments extends Component {
         const allAppointments = apptData.appointments;
         const today = new Date().toISOString().split('T')[0];
 
-        const todayAppointments = allAppointments.filter(appt => appt.date === today);
+        const appointmentsToShow = this.state.showAllAppointments
+          ? allAppointments
+          : allAppointments.filter(appt => appt.date === today);
 
         const totalAppointments = allAppointments.length;
-        const todayCount = todayAppointments.length;
+        const todayCount = appointmentsToShow.length;
         const cancelledCount = allAppointments.filter(a => a.status === 'cancelled').length;
         const pendingCount = allAppointments.filter(a => !a.status || a.status === 'pending').length;
         const completedCount = allAppointments.filter(a => a.status === 'completed').length;
 
         this.setState({
-          appointments: todayAppointments.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)),
+          appointments: appointmentsToShow.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)),
           totalAppointments,
           todayCount,
           cancelledCount,
@@ -208,12 +211,29 @@ class SalonAppointments extends Component {
       </div>
     </div>
   </div>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2>📋 Salon Appointments for Today</h2>
-          <button className={`btn ${salonClosed ? 'btn-success' : 'btn-danger'}`} onClick={this.toggleSalonStatus}>
-            {salonClosed ? 'Open Salon' : 'Close Salon'}
-          </button>
-        </div>
+        
+  <div className="d-flex justify-content-between align-items-center mb-4">
+    <h2>📋 Salon Appointments {this.state.showAllAppointments ? '(All)' : '(Today)'}</h2>
+    <div>
+      <button
+        className={`btn ${this.state.salonClosed ? 'btn-success' : 'btn-danger'}`}
+        onClick={this.toggleSalonStatus}
+      >
+        {this.state.salonClosed ? 'Open Salon' : 'Close Salon'}
+      </button>
+      <button
+        className="btn btn-primary m-3"
+        onClick={() => {
+          this.setState(
+            (prev) => ({ showAllAppointments: !prev.showAllAppointments, loading: true }),
+            () => this.fetchSalonStatusAndAppointments()
+          );
+        }}
+      >
+        {this.state.showAllAppointments ? 'Show Today Only' : 'Show All Appointments'}
+      </button>
+    </div>
+  </div>
 
         {toast && <div className="alert alert-info text-center">{toast}</div>}
         {loading && <div className="text-center"><div className="spinner-border text-warning" role="status" /></div>}
